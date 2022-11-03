@@ -6,7 +6,10 @@ const URL = 'http://localhost/todo/';
 
 function App() {
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState('')
+  const [newTask, setNewTask] = useState('');
+  const [editTask, setEditTask] = useState(null);
+  const [editDescription, setEditDescription] = useState('');
+
   useEffect(() => {
     axios.get(URL)
     .then((response) => {
@@ -48,6 +51,28 @@ function remove(id) {
   })
 }
 
+function setEditedTask(task) {
+  setEditTask(task);
+  setEditDescription(task?.description);
+}
+
+function update(e) {
+  e.preventDefault();
+  const json = JSON.stringify({id:editTask.id,description:editDescription})
+  axios.post(URL + 'update.php',json,{
+    headers: {
+      'Content-Type' : 'application/json'
+    }
+  })
+    .then((response) => {
+      tasks[(tasks.findIndex(task => task.id === editTask.id))].description = editDescription;
+      setTasks([...tasks]);
+      setEditedTask(null);
+    }).catch (error => {
+      alert(error.response ? error.response.data.error : error);
+    });
+}
+
   return (
     <div className='container'>
       <form onSubmit={save}>
@@ -58,11 +83,25 @@ function remove(id) {
       <ol>
         {tasks?.map(task => (
           <li key={task.id}>
-            {task.description}&nbsp;
-            <a href="#" className='delete' onClick={() => remove(task.id)}>
+            {editTask?.id !== task.id &&
+              task.description
+            } 
+            {editTask?.id === task.id && 
+              <form onSubmit={update}>
+                <input value={editDescription} onChange={e => setEditDescription(e.target.value)} />
+                <button>Save</button>
+                <button type="button" onClick={() => setEditedTask(null)}>Cancel</button>
+              </form>            
+        }
+        <a className='delete' onClick={() => remove(task.id)} href="#">    
               Delete
-            </a>
-            </li>
+            </a>&nbsp;
+            {editTask === null &&
+               <a className='edit' onClick={() => setEditedTask(task)} href="#">
+                Edit
+               </a>
+            }
+          </li>
         ))}
       </ol>
     </div>
